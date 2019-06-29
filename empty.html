@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <script>
+    var context;
+    window.addEventListener('load', init, false);
+    function init() {
+      try {
+        // Fix up for prefixing
+        window.AudioContext = window.AudioContext||window.webkitAudioContext;
+        context = new AudioContext();
+      }
+      catch(e) {
+        alert('Web Audio API is not supported in this browser');
+      }
+    }
+  </script>
+</head>
+<body>
+<style>
+#btn {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+}
+
+#canvas {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+audio {
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  width: calc(100% - 20px);
+}
+</style>
+<div id="content">
+  <button id="btn">Click</button>
+  <button id="btn-stop">Stop</button>
+  <button id="btn-play">Play</button>
+  <canvas id="canvas"></canvas>
+  <audio id="audio" controls src="we_are_the_russion.mp3"></audio>
+</div>
+<script>
+function pause(audioElem) {
+  audioElem.pause()
+}
+
+function play(audioElem) {
+  audioElem.play()
+}
+
+window.onload = function() {
+  const btn = document.getElementById('btn')
+  const audio = document.getElementById('audio')
+
+  setTimeout(() => {
+    // Аудио контекст
+    const context = new AudioContext()
+    const src = context.createMediaElementSource(audio)
+    const analyser = context.createAnalyser()
+
+    // Конвас контекст
+    const canvas = document.getElementById('canvas')
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    const ctx = canvas.getContext('2d')
+
+
+    src.connect(analyser)
+    analyser.connect(context.destination)
+
+    analyser.fftSize = 256
+
+    var bufferLength = analyser.frequencyBinCount
+    console.log(bufferLength)
+
+    var dataArray = new Uint8Array(bufferLength)
+
+    // canvas variables
+    var WIDTH = canvas.width
+    var HEIGHT = canvas.height
+    var barWidth = (WIDTH / bufferLength) * 0.10
+    var barHeight
+    var x = 0
+
+    function renderFrame() {
+      requestAnimationFrame(renderFrame)
+      console.log(dataArray)
+      x = 0
+
+      analyser.getByteFrequencyData(dataArray)
+
+      // стираем все
+      ctx.fillStyle = "#000"
+      ctx.fillRect(0, 0, WIDTH, HEIGHT)
+
+      /* рисуем все столбцы */
+      for (var i = 0; i < bufferLength; i++) {
+        barHeight = dataArray[i]
+        
+        // выбор цвета
+        var r = barHeight + (25 * (i / bufferLength))
+        var g = 250 * (i/bufferLength)
+        var b = 50
+        
+        // рисуем один столбец
+        ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")"
+        ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight)
+
+        // отступ для нового стобца
+        x += barWidth + 1
+      }
+    }
+    
+    play(audio)
+    renderFrame() // requestAnimationFrame
+  }, 1000)
+
+};
+</script>
+</body>
+</html>
